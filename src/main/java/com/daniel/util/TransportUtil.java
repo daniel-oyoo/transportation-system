@@ -63,10 +63,11 @@ public class TransportUtil {
           cars[i]=new CarEntity(
             ("K"+
              platesPrefixes[random.nextInt(platesPrefixes.length)]+
-             platesPrefixes[random.nextInt(platesPrefixes.length)]+
-             platesPrefixes[random.nextInt(platesPrefixes.length)]+
-             platesPrefixes[random.nextInt(platesPrefixes.length)]+
-             random.nextInt(1000,9999)
+             platesPrefixes[random.nextInt(platesPrefixes.length)]+ " " + 
+             //platesPrefixes[random.nextInt(platesPrefixes.length)]+
+             //platesPrefixes[random.nextInt(platesPrefixes.length)]+
+             random.nextInt(1000,9999) +
+             platesPrefixes[random.nextInt(platesPrefixes.length)]
             ),
             10+random.nextInt(50)
             ,(

@@ -9,3 +9,5 @@ SELECT * FROM SEATS
 WHERE IS_AVAILABLE = FALSE
 
 SELECT * FROM BOOKINGS 
+
+-- Query did not return a unique result: 96 results were returned

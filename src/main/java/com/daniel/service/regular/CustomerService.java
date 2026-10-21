@@ -41,14 +41,18 @@ public class CustomerService {
     @Transactional
     public BookingResponse book(BookingRequest request) {
 
+
+      //requested book and actaul booked dont match --fix 
+      //ensure seat id is juts seat  number for that specific car
+
       logger.info("Received a booking request by user {}" + request.userId());
 
       //does the car even exists
        if(!carRepository.existsByCarId(request.carId())) throw new RuntimeException("No such car exists");
       //check for seats availability
       SeatEntity seat = seatRepository
-                        //.findByCarId(request.carId())
-                        .findById(request.seatId())
+                        .findByCarId(request.carId())
+                        //.findById(request.seatId())
                         .orElseThrow(
                           ()->new SeatNotFoundException("Seat not found with id " +
                                                          request.seatId()
