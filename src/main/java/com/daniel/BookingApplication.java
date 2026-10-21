@@ -1,5 +1,6 @@
 package com.daniel;
 
+import java.util.Map;
 import java.util.logging.Logger;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -77,10 +78,16 @@ class Fill{
         //CarRepository r = context.getBean(CarRepository.class);
         //SeatRepository r1= context.getBean(SeatRepository.class);
 
-        SeatEntity [] seats =(SeatEntity []) TransportUtil.preFill().get("seats");
-        CarEntity []  cars =(CarEntity[]) TransportUtil.preFill().get("cars");
+        Map<String,Object>carsNseats = TransportUtil.preFill();
 
-        for(SeatEntity s : seats){r1.save(s);}
+        //two calls distorts our view
+        //SeatEntity [] seats =(SeatEntity []) TransportUtil.preFill().get("seats");
+        //CarEntity []  cars =(CarEntity[]) TransportUtil.preFill().get("cars");
+        SeatEntity [] seats=(SeatEntity []) carsNseats.get("seats");
+        CarEntity []  cars =(CarEntity[]) carsNseats.get("cars");
+
+
+        for(SeatEntity s :seats){r1.save(s);}
         for(CarEntity c : cars){r.save(c);}
 
         ///context.close();

@@ -43,6 +43,8 @@ public class CustomerService {
 
       logger.info("Received a booking request by user {}" + request.userId());
 
+      //does the car even exists
+       if(!carRepository.existsByCarId(request.carId())) throw new RuntimeException("No such car exists");
       //check for seats availability
       SeatEntity seat = seatRepository
                         //.findByCarId(request.carId())
@@ -61,9 +63,9 @@ public class CustomerService {
       //convert request to seat
       logger.info("booking a seat...");
       //seat
-      if(!carRepository.existsByCarId(request.carId())) throw new RuntimeException("No such car exists");
+     // if(!carRepository.existsByCarId(request.carId())) throw new RuntimeException("No such car exists");
       seat.setAvailable(false);
-      seat.setCarId(request.carId());
+      //seat.setCarId(request.carId());
       seatRepository.save(seat);
       logger.info("Seat booked successfully for user {} " + request.userId());
       //convert request to booking

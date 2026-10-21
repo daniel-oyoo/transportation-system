@@ -13,6 +13,7 @@ import com.daniel.dto.response.BookingResponse;
 import com.daniel.service.regular.CustomerService;
 
 import jakarta.persistence.Column;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
 import com.daniel.repository.*;
@@ -27,10 +28,10 @@ public class BookingController {
     private  final Logger logger = Logger.getLogger(BookingController.class.getName());
 
     
-    private final CarRepository r;
+    //private final CarRepository r;
 
-    private final SeatRepository r1;
-
+    //private final SeatRepository r1;
+/* 
     @Autowired
     public BookingController(
         CustomerService customerService,
@@ -41,33 +42,37 @@ public class BookingController {
         this.r =carRepository;
         this.r1=seatRepository;
     }
-/* 
-
-//    @Autowired
+ 
+*/
+    @Autowired
     public BookingController(CustomerService customerService) {
         this.customerService = customerService;
     }
+        
 
-    */
 
     @PostMapping
-    public ResponseEntity<BookingResponse> book(@Valid @RequestBody BookingRequest request) {
+    public ResponseEntity<BookingResponse> 
+    book(@Valid 
+        @RequestBody BookingRequest request,
+        HttpServletRequest req
+    ) {
         logger.info("Received request to book travel {} " + request);
         
         BookingResponse response = customerService.book(request);
         
         return ResponseEntity
                 .status(201)
-                .location(URI.create("/api/v1/booking/" + response.userId()))
+                .location(URI.create(req.getRequestURI() + "" + response.userId()))
                 .body(response);
     }
 
-    @GetMapping("/fill")
+    //@GetMapping("/fill")
     public Long fill(){
         //return 0L;
-        //var context = new AnnotationConfigApplicationContext(BookingApplication.class);
-       // CarRepository r = context.getBean(CarRepository.class);
-        //SeatRepository r1= context.getBean(SeatRepository.class);
+        var context = new AnnotationConfigApplicationContext(BookingApplication.class);
+        CarRepository r = context.getBean(CarRepository.class);
+        SeatRepository r1= context.getBean(SeatRepository.class);
 
         SeatEntity [] seats =(SeatEntity [])TransportUtil.preFill().get("seats");
         CarEntity []  cars =(CarEntity[])TransportUtil.preFill().get("cars");
