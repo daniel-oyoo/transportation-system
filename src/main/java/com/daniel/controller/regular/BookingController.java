@@ -18,6 +18,7 @@ import com.daniel.entity.CarEntity;
 import com.daniel.entity.SeatEntity;
 import com.daniel.repository.CarRepository;
 import com.daniel.repository.SeatRepository;
+import com.daniel.service.DataSeederService;
 import com.daniel.service.regular.CustomerService;
 import com.daniel.util.TransportUtil;
 
@@ -36,17 +37,11 @@ public class BookingController {
     private static final Logger LOGGER = Logger.getLogger(BookingController.class.getName());
 
     private final CustomerService customerService;
-    private final CarRepository carRepository;
-    private final SeatRepository seatRepository;
+    private final DataSeederService dataSeederService;
 
-    public BookingController(
-            CustomerService customerService,
-            CarRepository carRepository,
-            SeatRepository seatRepository
-    ) {
+    public BookingController(CustomerService customerService, DataSeederService dataSeederService) {
         this.customerService = customerService;
-        this.carRepository = carRepository;
-        this.seatRepository = seatRepository;
+        this.dataSeederService = dataSeederService;
     }
 
     @Operation(summary = "Book a travel seat", description = "Validates car existence, checks seat availability, locks the seat, and records the booking.")
@@ -75,21 +70,17 @@ public class BookingController {
     @Operation(summary = "Seed transport data", description = "Manually triggers generation and storage of default cars and seats into the database.")
     @ApiResponse(responseCode = "200", description = "Data seeded successfully with total count returned")
     @GetMapping("/fill")
-    public ResponseEntity<Long> fillData() {
-        Map<String, Object> generatedData = TransportUtil.preFill();
-        
-        SeatEntity[] seats = (SeatEntity[]) generatedData.get("seats");
-        CarEntity[] cars = (CarEntity[]) generatedData.get("cars");
+    @PostMapping("/fill")
+    public ResponseEntity<Map<String, String>> fillDataAsync() {
+        // Triggers the background task on the custom thread pool
+        dataSeederService.seedDataAsync();
 
-        for (CarEntity car : cars) {
-            carRepository.save(car);
-        }
+        // Immediately return 202 Accepted to the client
+        Map<String, String> response = Map.of(
+                "status", "ACCEPTED",
+                "message", "Data seeding task initiated asynchronously in the background."
+        );
 
-        for (SeatEntity seat : seats) {
-            seatRepository.save(seat);
-        }
-
-        long totalCount = seatRepository.count() + carRepository.count();
-        return ResponseEntity.ok(totalCount);
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
     }
 }
