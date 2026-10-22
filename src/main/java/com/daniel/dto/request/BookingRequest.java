@@ -1,7 +1,7 @@
 package com.daniel.dto.request;
 
 import java.math.BigDecimal;
-import java.util.Date;
+import java.time.LocalDate;
 
 public record BookingRequest(
     String userId,
@@ -11,5 +11,5 @@ public record BookingRequest(
     String route,
     String from,
     String to,
-    Date travelDate
+    LocalDate travelDate
 ){}

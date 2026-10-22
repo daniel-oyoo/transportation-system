@@ -49,16 +49,11 @@ class BookingTest {
 
     @BeforeEach
     void setUp() {
-        // Clear previous state for clean test runs
         bookingRepository.deleteAll();
         seatRepository.deleteAll();
         carRepository.deleteAll();
 
-        // Setup mock test car
-        testCar = new CarEntity("KAA 1234A", 30, "Bus");
-        testCar = carRepository.save(testCar);
-
-        // Setup mock test available seat linked to the car
+        testCar = carRepository.save(new CarEntity("KAA 1234A", 30, "Bus"));
         testSeat = new SeatEntity(true, "window");
         testSeat.setCarId(testCar.getCarId());
         testSeat = seatRepository.save(testSeat);
@@ -66,91 +61,67 @@ class BookingTest {
 
     @Test
     @DisplayName("Successfully book an available seat")
-    void testBookSeatSuccess() throws Exception {
-        BookingRequest request = new BookingRequest(
-                "user-101",
-                testCar.getCarId(),
-                testSeat.getId(),
-                new BigDecimal("50.00"),
-                "Route A",
-                "City X",
-                "City Y",
-                LocalDate.now().plusDays(1)
-        );
-
+    void booksAvailableSeat() throws Exception {
         mockMvc.perform(post("/api/v1/booking")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(objectMapper.writeValueAsString(bookingRequest(
+                                testCar.getCarId(), testSeat.getId()))))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.userId").value("user-101"))
                 .andExpect(jsonPath("$.carId").value(testCar.getCarId()))
                 .andExpect(jsonPath("$.seatId").value(testSeat.getId()));
+
+        org.assertj.core.api.Assertions.assertThat(bookingRepository.count()).isEqualTo(1);
+        org.assertj.core.api.Assertions.assertThat(
+                seatRepository.findById(testSeat.getId()).orElseThrow().isAvailable()).isFalse();
     }
 
     @Test
-    @DisplayName("Fail to book a seat that is already booked (Conflict 409)")
-    void testBookSeatAlreadyBooked() throws Exception {
-        // Mark seat as already unavailable
+    @DisplayName("Returns conflict when the seat is already booked")
+    void rejectsUnavailableSeat() throws Exception {
         testSeat.setAvailable(false);
         seatRepository.save(testSeat);
 
-        BookingRequest request = new BookingRequest(
-                "user-102",
-                testCar.getCarId(),
-                testSeat.getId(),
-                new BigDecimal("50.00"),
-                "Route A",
-                "City X",
-                "City Y",
-                LocalDate.now().plusDays(1)
-        );
-
         mockMvc.perform(post("/api/v1/booking")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(objectMapper.writeValueAsString(bookingRequest(
+                                testCar.getCarId(), testSeat.getId()))))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(409))
                 .andExpect(jsonPath("$.message").exists());
     }
 
     @Test
-    @DisplayName("Fail to book a non-existent seat (Not Found 404)")
-    void testBookSeatNotFound() throws Exception {
-        BookingRequest request = new BookingRequest(
-                "user-103",
-                testCar.getCarId(),
-                99999L, // Non-existent seat ID
-                new BigDecimal("50.00"),
-                "Route A",
-                "City X",
-                "City Y",
-                LocalDate.now().plusDays(1)
-        );
-
+    @DisplayName("Returns not found when the seat does not exist")
+    void rejectsMissingSeat() throws Exception {
         mockMvc.perform(post("/api/v1/booking")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(objectMapper.writeValueAsString(bookingRequest(
+                                testCar.getCarId(), 99999L))))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404));
     }
 
     @Test
-    @DisplayName("Fail to book when car does not exist (Internal Server Error / Bad Request)")
-    void testBookCarNotFound() throws Exception {
-        BookingRequest request = new BookingRequest(
-                "user-104",
-                "KXX 9999Z", // Non-existent car plate
-                testSeat.getId(),
+    @DisplayName("Returns internal server error when the car does not exist")
+    void rejectsMissingCar() throws Exception {
+        mockMvc.perform(post("/api/v1/booking")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(bookingRequest(
+                                "KXX 9999Z", testSeat.getId()))))
+                .andExpect(status().isInternalServerError());
+    }
+
+    private BookingRequest bookingRequest(String carId, Long seatId) {
+        return new BookingRequest(
+                "user-101",
+                carId,
+                seatId,
                 new BigDecimal("50.00"),
                 "Route A",
                 "City X",
                 "City Y",
                 LocalDate.now().plusDays(1)
         );
-
-        mockMvc.perform(post("/api/v1/booking")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isInternalServerError()); // Caught by generic Exception handler
     }
 }

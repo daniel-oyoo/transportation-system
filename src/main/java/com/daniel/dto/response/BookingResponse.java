@@ -1,6 +1,6 @@
 package com.daniel.dto.response;
 
-import java.util.Date;
+import java.time.LocalDate;
 
 public record BookingResponse(
     String userId,
@@ -9,5 +9,5 @@ public record BookingResponse(
     String route,
     String from,
     String to,
-    Date travelDate
+    LocalDate travelDate
 ){}
