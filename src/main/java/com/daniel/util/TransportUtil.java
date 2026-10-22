@@ -1,81 +1,99 @@
 package com.daniel.util;
 
+import com.daniel.entity.CarEntity;
+import com.daniel.entity.SeatEntity;
+
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.logging.Logger;
+import java.util.stream.IntStream;
 
-import com.daniel.entity.*;
+public final class TransportUtil {
 
-import jakarta.persistence.Column;
+    private static final Logger LOGGER = Logger.getLogger(TransportUtil.class.getName());
 
-public class TransportUtil {
+    private static final int CAR_COUNT_LIMIT = 10;
+    private static final int SEAT_COUNT_LIMIT = 1000;
+    private static final int MIN_CAR_CAPACITY = 10;
+    private static final int MAX_CAR_CAPACITY = 60; // 10 + 50 bound
 
-
-    private final static Random random = new Random();
-    private final static int CAR_COUNT_LIMIT=10;
-    private final static int SEAT_COUNT_LIMIT = 1000;
-    private final static Logger logger = Logger.getLogger(TransportUtil.class.getName());
+    private static final String[] SEAT_TYPE_CHOICES = {"window", "middle", "aisle"};
     
-    public static Map<String,Object> preFill(){
-        logger.info("Beggining generation");
+    // Expanded from A to Z
+    private static final String[] PLATE_PREFIXES = {
+        "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", 
+        "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", 
+        "U", "V", "W", "X", "Y", "Z"
+    };
+    
+    private static final String[] CAR_TYPE_CHOICES = {"Bus", "shuttle"};
+
+    // Prevent instantiation of utility class
+    private TransportUtil() {
+        throw new UnsupportedOperationException("Utility class cannot be instantiated");
+    }
+
+    /**
+     * Pre-fills transport data containing generated cars and seats.
+     * 
+     * @return A map containing "cars" and "seats" arrays.
+     */
+    public static Map<String, Object> preFill() {
+        LOGGER.info("Beginning transport data generation...");
         return generateSeats();
     }
-    private static Map<String,Object> generateSeats(){
-    int seatCount =SEAT_COUNT_LIMIT;
-    SeatEntity [] seats = new SeatEntity[seatCount];
-    boolean available = true;
-    String [] seatTypeChoices = {"window","middle","aisle"};
 
-    //build seat
-    for(int i=0;i<seatCount;i++){
-        seats[i]=new SeatEntity(
-          available,
-          seatTypeChoices[random.nextInt(seatTypeChoices.length)]
-        );
+    private static Map<String, Object> generateSeats() {
+        ThreadLocalRandom random = ThreadLocalRandom.current();
+
+        // Build seats stream-based for elegance
+        SeatEntity[] seats = IntStream.range(0, SEAT_COUNT_LIMIT)
+                .mapToObj(i -> new SeatEntity(
+                        true,
+                        SEAT_TYPE_CHOICES[random.nextInt(SEAT_TYPE_CHOICES.length)]
+                ))
+                .toArray(SeatEntity[]::new);
+
+        // Generate cars
+        CarEntity[] cars = generateCars();
+
+        // Assign seats to random cars
+        for (SeatEntity seat : seats) {
+            CarEntity randomCar = cars[random.nextInt(cars.length)];
+            seat.setCarId(randomCar.getCarId());
+        }
+
+        // Construct result map
+        Map<String, Object> tools = new HashMap<>(2);
+        tools.put("cars", cars);
+        tools.put("seats", seats);
+
+        LOGGER.info(() -> String.format("Successfully generated %d cars and %d seats.", cars.length, seats.length));
+        return tools;
     }
-    //get cars
-    CarEntity [] cars = generateCars(seatCount);
-    //combine sets abd cars
-    for(int i=0;i<seatCount;i++){
-        seats[i].setCarId(
-            cars[random.nextInt(cars.length)].getCarId()
-        );
-    }
 
-    //build map
-    Map<String,Object> tools = new HashMap<>();
-    tools.put("cars",cars);
-    tools.put("seats",seats);
+    private static CarEntity[] generateCars() {
+        ThreadLocalRandom random = ThreadLocalRandom.current();
+        CarEntity[] cars = new CarEntity[CAR_COUNT_LIMIT];
 
-    return tools;
+        for (int i = 0; i < CAR_COUNT_LIMIT; i++) {
+            String licensePlate = buildLicensePlate(random);
+            int capacity = random.nextInt(MIN_CAR_CAPACITY, MAX_CAR_CAPACITY);
+            String carType = CAR_TYPE_CHOICES[random.nextInt(CAR_TYPE_CHOICES.length)];
 
-    }
-
-    private static CarEntity [] generateCars(int carCount){
-        carCount = CAR_COUNT_LIMIT;
-        CarEntity [] cars = new CarEntity[carCount];
-        String [] platesPrefixes = {"A","B","C","D","E","F"};
-        //int numberOfSeats = 10+random.nextInt(50);
-        String [] carTypeChoises = {"Bus","shuttle"};
-
-        for(int i=0;i<carCount;i++){
-          cars[i]=new CarEntity(
-            ("K"+
-             platesPrefixes[random.nextInt(platesPrefixes.length)]+
-             platesPrefixes[random.nextInt(platesPrefixes.length)]+ " " + 
-             //platesPrefixes[random.nextInt(platesPrefixes.length)]+
-             //platesPrefixes[random.nextInt(platesPrefixes.length)]+
-             random.nextInt(1000,9999) +
-             platesPrefixes[random.nextInt(platesPrefixes.length)]
-            ),
-            10+random.nextInt(50)
-            ,(
-            carTypeChoises[random.nextInt(carTypeChoises.length)]
-            )
-          );
+            cars[i] = new CarEntity(licensePlate, capacity, carType);
         }
 
         return cars;
+    }
+
+    private static String buildLicensePlate(ThreadLocalRandom random) {
+        String p1 = PLATE_PREFIXES[random.nextInt(PLATE_PREFIXES.length)];
+        String p2 = PLATE_PREFIXES[random.nextInt(PLATE_PREFIXES.length)];
+        String p3 = PLATE_PREFIXES[random.nextInt(PLATE_PREFIXES.length)];
+        int digits = random.nextInt(1000, 10000);
+
+        return "K" + p1 + p2 + " " + digits + p3;
     }
 }

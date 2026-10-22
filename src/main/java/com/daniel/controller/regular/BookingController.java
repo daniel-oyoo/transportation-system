@@ -1,95 +1,95 @@
 package com.daniel.controller.regular;
 
 import java.net.URI;
+import java.util.Map;
 import java.util.logging.Logger;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import com.daniel.dto.request.BookingRequest;
 import com.daniel.dto.response.BookingResponse;
+import com.daniel.entity.CarEntity;
+import com.daniel.entity.SeatEntity;
+import com.daniel.repository.CarRepository;
+import com.daniel.repository.SeatRepository;
 import com.daniel.service.regular.CustomerService;
+import com.daniel.util.TransportUtil;
 
-import jakarta.persistence.Column;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
-import com.daniel.repository.*;
-import com.daniel.util.TransportUtil;
-import com.daniel.entity.*;
-import com.daniel.*;
 @RestController
-@RequestMapping("api/v1/booking")
+@RequestMapping("/api/v1/booking")
+@Tag(name = "Booking Management", description = "Endpoints for handling customer seat bookings and transport data initialization")
 public class BookingController {
+
+    private static final Logger LOGGER = Logger.getLogger(BookingController.class.getName());
+
     private final CustomerService customerService;
+    private final CarRepository carRepository;
+    private final SeatRepository seatRepository;
 
-    private  final Logger logger = Logger.getLogger(BookingController.class.getName());
-
-    
-    //private final CarRepository r;
-
-    //private final SeatRepository r1;
-/* 
-    @Autowired
     public BookingController(
-        CustomerService customerService,
-        CarRepository carRepository,
-      SeatRepository seatRepository
+            CustomerService customerService,
+            CarRepository carRepository,
+            SeatRepository seatRepository
     ) {
         this.customerService = customerService;
-        this.r =carRepository;
-        this.r1=seatRepository;
+        this.carRepository = carRepository;
+        this.seatRepository = seatRepository;
     }
- 
-*/
-    @Autowired
-    public BookingController(CustomerService customerService) {
-        this.customerService = customerService;
-    }
-        
 
-
+    @Operation(summary = "Book a travel seat", description = "Validates car existence, checks seat availability, locks the seat, and records the booking.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "201", description = "Seat successfully booked"),
+        @ApiResponse(responseCode = "404", description = "Car or Seat not found"),
+        @ApiResponse(responseCode = "409", description = "Seat is already booked"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
     @PostMapping
-    public ResponseEntity<BookingResponse> 
-    book(@Valid 
-        @RequestBody BookingRequest request,
-        HttpServletRequest req
+    public ResponseEntity<BookingResponse> book(
+            @Valid @RequestBody BookingRequest request,
+            HttpServletRequest req
     ) {
-        logger.info("Received request to book travel {} " + request);
-        
+        LOGGER.info(() -> "Received request to book travel for request: " + request);
+
         BookingResponse response = customerService.book(request);
-        
+        URI location = URI.create(req.getRequestURI() + "/" + response.userId());
+
         return ResponseEntity
-                .status(201)
-                .location(URI.create(req.getRequestURI() + "" + response.userId()))
+                .status(HttpStatus.CREATED)
+                .location(location)
                 .body(response);
     }
 
-    //@GetMapping("/fill")
-    public Long fill(){
-        //return 0L;
-        var context = new AnnotationConfigApplicationContext(BookingApplication.class);
-        CarRepository r = context.getBean(CarRepository.class);
-        SeatRepository r1= context.getBean(SeatRepository.class);
+    @Operation(summary = "Seed transport data", description = "Manually triggers generation and storage of default cars and seats into the database.")
+    @ApiResponse(responseCode = "200", description = "Data seeded successfully with total count returned")
+    @GetMapping("/fill")
+    public ResponseEntity<Long> fillData() {
+        Map<String, Object> generatedData = TransportUtil.preFill();
+        
+        SeatEntity[] seats = (SeatEntity[]) generatedData.get("seats");
+        CarEntity[] cars = (CarEntity[]) generatedData.get("cars");
 
-        SeatEntity [] seats =(SeatEntity [])TransportUtil.preFill().get("seats");
-        CarEntity []  cars =(CarEntity[])TransportUtil.preFill().get("cars");
-
-        for(SeatEntity s : seats){
-            logger.info("Saving seat with id " + s.getCarId());
-            r1.save(s);
-            logger.info("Seat count " + r1.count());
-        }
-        for(CarEntity c : cars){
-            logger.info("Saving car with id " + c.getCarId());
-            r.save(c);
-            logger.info("Car count " + r.count());
+        for (CarEntity car : cars) {
+            carRepository.save(car);
         }
 
-        //context.close();
+        for (SeatEntity seat : seats) {
+            seatRepository.save(seat);
+        }
 
-        return (Long)r1.count()+r.count();
+        long totalCount = seatRepository.count() + carRepository.count();
+        return ResponseEntity.ok(totalCount);
     }
 }
