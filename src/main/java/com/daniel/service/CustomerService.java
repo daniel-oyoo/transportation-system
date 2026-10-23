@@ -1,4 +1,4 @@
-package com.daniel.service.regular;
+package com.daniel.service;
 
 import com.daniel.dto.request.BookingRequest;
 import com.daniel.dto.response.BookingResponse;

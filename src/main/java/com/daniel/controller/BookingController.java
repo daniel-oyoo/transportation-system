@@ -1,4 +1,4 @@
-package com.daniel.controller.regular;
+package com.daniel.controller;
 
 import java.net.URI;
 import java.util.Map;
@@ -14,13 +14,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.daniel.dto.request.BookingRequest;
 import com.daniel.dto.response.BookingResponse;
-import com.daniel.entity.CarEntity;
-import com.daniel.entity.SeatEntity;
-import com.daniel.repository.CarRepository;
-import com.daniel.repository.SeatRepository;
 import com.daniel.service.DataSeederService;
-import com.daniel.service.regular.CustomerService;
-import com.daniel.util.TransportUtil;
+import com.daniel.service.CustomerService;
+
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -70,7 +66,7 @@ public class BookingController {
     @Operation(summary = "Seed transport data", description = "Manually triggers generation and storage of default cars and seats into the database.")
     @ApiResponse(responseCode = "200", description = "Data seeded successfully with total count returned")
     @GetMapping("/fill")
-    @PostMapping("/fill")
+    //@PostMapping("/fill")
     public ResponseEntity<Map<String, String>> fillDataAsync() {
         // Triggers the background task on the custom thread pool
         dataSeederService.seedDataAsync();
