@@ -61,7 +61,7 @@ public class CustomerService {
         }
 
         // 4. Update seat status
-        logger.info("Booking the seat...");
+        //logger.info("Booking the seat...");
         seat.setAvailable(false);
         seatRepository.save(seat);
         
