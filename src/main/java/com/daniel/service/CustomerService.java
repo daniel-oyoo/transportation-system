@@ -9,6 +9,7 @@ import com.daniel.exception.SeatNotFoundException;
 import com.daniel.repository.BookingRepository;
 import com.daniel.repository.CarRepository;
 import com.daniel.repository.SeatRepository;
+import com.punge.core.Commons;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,13 +41,15 @@ public class CustomerService {
         logger.info(() -> "Received a booking request by user: " + request.userId());
 
         // 1. Verify car exists
-        if (!carRepository.existsByCarId(request.carId())) {
+        String valid = Commons.validate(request.carId());
+        String cleaned = Commons.sanitize(valid);
+        
+        if (!carRepository.existsByCarId(cleaned)) {
             throw new RuntimeException("No such car exists with ID: " + request.carId());
         }
 
-        // 2. Fetch the specific seat for this car (Fixes the lookup bug)
-        // Note: Ensure your SeatRepository has a method like findByCarIdAndId(String carId, Long seatId) 
-        // or validate that the seat belongs to the requested car.
+        // 2. Fetch the specific seat for this car 
+        // validate that the seat belongs to the requested car.
         SeatEntity seat = seatRepository.findById(request.seatId())
                 .orElseThrow(() -> new SeatNotFoundException("Seat not found with ID: " + request.seatId()));
 

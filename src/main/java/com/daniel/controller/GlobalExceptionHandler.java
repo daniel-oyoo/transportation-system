@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import com.daniel.dto.response.ErrorResponse;
 import com.daniel.exception.SeatAlreadyBookedException;
 import com.daniel.exception.SeatNotFoundException;
+import com.punge.core.PungeException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -38,6 +39,23 @@ public class GlobalExceptionHandler {
         );
 
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+    }
+
+    @ExceptionHandler(PungeException.class)
+    public ResponseEntity<ErrorResponse> handlePungeException(PungeException e) {
+        //LOGGER.warning("Error {} " + e.printStackTrace()
+        // e.getMessage()
+       // );
+       e.printStackTrace();
+        ErrorResponse response = new ErrorResponse(
+                LocalDateTime.now().toString(),
+                //HttpStatus.resolve(e.getStatus()).value(),
+                e.getStatus(),
+                //NOT_FOUND.value(),
+                e.getMessage()
+        );
+
+        return ResponseEntity.status(response.status()).body(response);
     }
 
     @ExceptionHandler(Exception.class)
