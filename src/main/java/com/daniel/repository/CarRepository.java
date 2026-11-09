@@ -8,5 +8,4 @@ import com.daniel.entity.CarEntity;
 @Repository
 public interface CarRepository extends JpaRepository<CarEntity,Long>{
 
-    boolean existsByCarId(String carId);
 }

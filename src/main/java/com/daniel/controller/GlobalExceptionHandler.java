@@ -8,55 +8,16 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 
 import com.daniel.dto.response.ErrorResponse;
-import com.daniel.exception.SeatAlreadyBookedException;
-import com.daniel.exception.SeatNotFoundException;
-import com.punge.core.PungeException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     private static final Logger LOGGER = Logger.getLogger(GlobalExceptionHandler.class.getName());
-
-    @ExceptionHandler(SeatAlreadyBookedException.class)
-    public ResponseEntity<ErrorResponse> handleSeatAlreadyBooked(SeatAlreadyBookedException e) {
-        ErrorResponse response = new ErrorResponse(
-                LocalDateTime.now().toString(),
-                HttpStatus.CONFLICT.value(),
-                e.getMessage()
-        );
-
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
-    }
-
-    @ExceptionHandler(SeatNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleSeatNotFound(SeatNotFoundException e) {
-        ErrorResponse response = new ErrorResponse(
-                LocalDateTime.now().toString(),
-                HttpStatus.NOT_FOUND.value(),
-                e.getMessage()
-        );
-
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
-    }
-
-    @ExceptionHandler(PungeException.class)
-    public ResponseEntity<ErrorResponse> handlePungeException(PungeException e) {
-        //LOGGER.warning("Error {} " + e.printStackTrace()
-        // e.getMessage()
-       // );
-       e.printStackTrace();
-        ErrorResponse response = new ErrorResponse(
-                LocalDateTime.now().toString(),
-                //HttpStatus.resolve(e.getStatus()).value(),
-                e.getStatus(),
-                //NOT_FOUND.value(),
-                e.getMessage()
-        );
-
-        return ResponseEntity.status(response.status()).body(response);
-    }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(Exception e) {
@@ -70,5 +31,37 @@ public class GlobalExceptionHandler {
         );
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ErrorResponse> handleResponseStatus(ResponseStatusException e) {
+        HttpStatus status = HttpStatus.valueOf(e.getStatusCode().value());
+        ErrorResponse response = new ErrorResponse(
+                LocalDateTime.now().toString(),
+                status.value(),
+                e.getReason() == null ? status.getReasonPhrase() : e.getReason());
+        return ResponseEntity.status(status).body(response);
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException e) {
+        String message = e.getBindingResult().getFieldErrors().stream()
+                .findFirst()
+                .map(error -> error.getDefaultMessage())
+                .orElse("Request validation failed");
+        ErrorResponse response = new ErrorResponse(
+                LocalDateTime.now().toString(),
+                HttpStatus.BAD_REQUEST.value(),
+                message);
+        return ResponseEntity.badRequest().body(response);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponse> handleMalformedRequest(HttpMessageNotReadableException e) {
+        ErrorResponse response = new ErrorResponse(
+                LocalDateTime.now().toString(),
+                HttpStatus.BAD_REQUEST.value(),
+                "Request body is missing or malformed");
+        return ResponseEntity.badRequest().body(response);
     }
 }

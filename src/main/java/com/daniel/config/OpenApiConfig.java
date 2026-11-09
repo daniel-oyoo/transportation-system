@@ -14,12 +14,10 @@ public class OpenApiConfig {
     public OpenAPI transportationOpenAPI() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("Transportation & Seat Reservation System API")
-                        .description("REST API documentation for managing cars, seats, and customer travel bookings.")
-                        .version("v1.0.0")
-                        .contact(new Contact()
-                                .name("Daniel")
-                                .email("daniel@example.com"))
+                        .title("Easy Coach Kenya Demo Booking API")
+                        .description("Sample trip search and booking API. Not an official Easy Coach service.")
+                        .version("v1")
+                        .contact(new Contact().name("Demo project maintainer"))
                         .license(new License()
                                 .name("Apache 2.0")
                                 .url("https://www.apache.org/licenses/LICENSE-2.0.html")));

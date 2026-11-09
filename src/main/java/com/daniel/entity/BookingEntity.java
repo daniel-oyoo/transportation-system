@@ -2,6 +2,8 @@ package com.daniel.entity;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.UUID;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -9,59 +11,64 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
+import jakarta.persistence.UniqueConstraint;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
 @Data
-@Table(name = "bookings")
+@Table(name = "bookings", uniqueConstraints = {
+        @UniqueConstraint(name = "uk_booking_trip_seat", columnNames = { "trip_id", "seat_id" })
+})
 @NoArgsConstructor
-@AllArgsConstructor
-public class BookingEntity { //[cite: 1]
+public class BookingEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id; // Primary key placeholder[cite: 1]
+    private Long id;
 
     @Column(nullable = false)
-    private String userId; //[cite: 1]
+    private String carId;
 
     @Column(nullable = false)
-    private String carId; // License plate reference[cite: 1]
+    private Long seatId;
 
     @Column(nullable = false)
-    private Long seatId; //[cite: 1]
-
-    @Column(nullable = false)
-    private BigDecimal price; //[cite: 1]
+    private BigDecimal price;
 
     @Column
-    private String route; //[cite: 1]
+    private String route;
 
     @Column
-    private String source; //[cite: 1]
+    private String source;
 
     @Column
-    private String destination; //[cite: 1]
+    private String destination;
 
     @Column(nullable = false)
-    private LocalDate travelDate; // Modern Java Time API[cite: 1]
+    private LocalDate travelDate;
 
-    /**
-     * Convenient constructor for creating a booking entity without specifying the DB-generated ID.
-     */
-    public BookingEntity(
-            String userId, 
-            String carId, 
-            Long seatId,
-            BigDecimal price, 
-            String route,
-            String source,
-            String destination, 
-            LocalDate travelDate
-    ) { //[cite: 1]
-        this.userId = userId;
+    @Column(unique = true, length = 36)
+    private String bookingReference;
+
+    private Long tripId;
+
+    private String passengerName;
+
+    private String passengerPhone;
+
+    @Column(nullable = false)
+    private String status = "CONFIRMED";
+
+    @Column(nullable = false)
+    private String paymentStatus = "PAY_AT_STATION";
+
+    @Column(nullable = false)
+    private LocalDateTime createdAt;
+
+    public BookingEntity(String carId, Long seatId, BigDecimal price, String route,
+            String source, String destination, LocalDate travelDate, Long tripId,
+            String passengerName, String passengerPhone) {
         this.carId = carId;
         this.seatId = seatId;
         this.price = price;
@@ -69,5 +76,18 @@ public class BookingEntity { //[cite: 1]
         this.source = source;
         this.destination = destination;
         this.travelDate = travelDate;
+        this.tripId = tripId;
+        this.passengerName = passengerName;
+        this.passengerPhone = passengerPhone;
+    }
+
+    @jakarta.persistence.PrePersist
+    void prepareForInsert() {
+        if (bookingReference == null) {
+            bookingReference = UUID.randomUUID().toString();
+        }
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
     }
 }

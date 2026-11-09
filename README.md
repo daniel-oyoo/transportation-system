@@ -1,111 +1,75 @@
 
-# Transportation & Seat Reservation System API
+# Easy Coach Kenya Demo Booking App
 
-A robust, production-grade Spring Boot backend application built for managing a transportation fleet (buses and shuttles), dynamic seat allocation, and customer travel bookings. 
+A passenger-booking demo built with a Spring Boot REST API and a React/Vite web client. It demonstrates trip search, seat selection, reservations, and booking-reference lookup. The Easy Coach Kenya name is used only to identify the sample operator concept; this project is not affiliated with or endorsed by Easy Coach.
 
----
+**Demo data only:** the included routes, buses, departure times, and fares are illustrative. Verify all real operator details and obtain permission before presenting this as an official service.
 
-## Key Features
+## What works
 
-* **Automated Data Seeding:** Safely pre-fills the database on startup with randomized fleets (license plates, vehicle capacities, types) and seat pools (window, middle, aisle) using an idempotent `CommandLineRunner`.
-* **Transactional Booking Engine:** Ensures safe concurrency and data integrity when users book seats, preventing double-booking conflicts.
-* **Custom Thread Pool Configuration:** Optimized execution thread pool (`requestExecutor`) tuned for high-concurrency request handling.
-* **Global Exception Handling:** Centralized REST error handling providing clean, standardized error payloads and HTTP status codes (`404`, `409`, `500`).
-* **Interactive API Documentation:** Fully documented with **Springdoc OpenAPI (Swagger UI)**.
-* **Containerized Deployment:** Multi-stage `Dockerfile` optimized for lightweight, secure production container deployments.
+- Search scheduled trips by origin, destination, and date.
+- Show per-trip seat availability and reserve a seat.
+- Compute the fare from the server-side trip record, not from the browser request.
+- Prevent duplicate seat reservations with a database uniqueness constraint.
+- Return and look up a UUID booking reference.
+- Seed sample buses, seats, and trips only in the `dev` profile.
+- Run separate `dev`, `test`, and `prod` application profiles.
 
----
+Reservations are confirmed as **pay at station**. There is no card or M-Pesa integration.
 
-##  Technology Stack
+## Run locally
 
-* **Language:** Java 21
-* **Framework:** Spring Boot 3 (Spring Web, Spring Data JPA, Spring Validation, Spring Scheduling)
-* **Database:** Relational Database (H2 / PostgreSQL / MySQL compatible via JPA/Hibernate)
-* **Documentation:** OpenAPI 3 / Swagger UI
-* **Containerization:** Docker (Eclipse Temurin JDK/JRE 21)
-* **Utilities:** Lombok, ThreadLocalRandom
+Prerequisites: Java 21, Maven 3.9+, Node.js 20.19+ or 22.12+.
 
----
+### Backend
 
-##  Project Structure
+From the repository root:
 
-```text
-com.daniel
-│
-├── config/              # Thread pools & OpenAPI / Swagger configurations
-├── controller/          # REST controllers (BookingController, GlobalExceptionHandler)
-├── dto/                 # Request & Response records/DTOs
-├── entity/              # JPA Entities (BookingEntity, CarEntity, SeatEntity)
-├── exception/           # Custom domain exceptions
-├── repository/          # Spring Data JPA repositories
-├── service/             # Business logic layer (CustomerService)
-└── util/                # Data generation & helper utilities (TransportUtil)
-
+```powershell
+mvn spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
----
+The default profile is `dev`; the local database is a persistent H2 file under `data/`. The demo records are inserted once when the trip table is empty. API docs are available at `http://localhost:8080/swagger-ui.html`.
 
-##  Getting Started Locally
+### React web app
 
-### Prerequisites
+In another terminal:
 
-* Java 21 installed
-* Maven installed (or use the included `./mvnw wrapper`)
-
-### 1. Clone the Repository
-
-```bash
-git clone https://github.com/daniel-oyoo/transportation-system.git
-cd transportation-system
-
+```powershell
+cd web
+npm install
+npm run dev
 ```
 
-### 2. Run the Application
+Open the Vite URL printed in the terminal (normally `http://localhost:5173`). The frontend reads the API base URL from `web/.env.local`; copy `web/.env.example` there to override it.
 
-Using Maven wrapper:
+## Environment profiles
 
-```bash
-./mvnw spring-boot:run
+| Profile | Database | Schema | Intended use |
+|---|---|---|---|
+| `dev` | Persistent local H2 | Hibernate `update` | Local development with illustrative sample data |
+| `test` | In-memory H2 | Hibernate `create-drop` | Automated tests; no sample data |
+| `prod` | PostgreSQL | Flyway migrations; Hibernate `validate` | Deployment with externally supplied secrets |
 
+Run tests with:
+
+```powershell
+mvn test
 ```
 
-The application will start on port `8080` and automatically seed initial cars and seats if the database is empty.
+For production, set `SPRING_PROFILES_ACTIVE=prod` and supply `DATABASE_URL`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`, and `APP_CORS_ALLOWED_ORIGINS` through the deployment platform's secret/configuration system. The app expects the PostgreSQL JDBC URL form, for example `jdbc:postgresql://db-host:5432/easycoach`. Do not deploy the example credentials. The initial production schema is in `src/main/resources/db/migration`.
 
----
+The backend container can be built with `docker build -t easy-coach-booking-api .`. It serves the API only; deploy the Vite build separately as a static site and set the production CORS origin to that site.
 
-##  Running with Docker
+## API
 
-### 1. Build the Docker Image
+- `GET /api/v1/trips?from=Nairobi&to=Kisumu&date=YYYY-MM-DD` — search scheduled trips.
+- `GET /api/v1/trips/{tripId}/seats` — list seats and availability for a trip.
+- `POST /api/v1/bookings` — reserve a seat. Body: `{"tripId":1,"seatId":1,"passengerName":"Amina Otieno","passengerPhone":"0712345678"}`.
+- `GET /api/v1/bookings/{reference}` — look up a reservation.
 
-```bash
-docker build -t transportation-api:latest .
+The booking API does not accept a client-supplied fare. The fare and route are read from the selected trip.
 
-```
+## Before a real operator launch
 
-### 2. Run the Container
-
-```bash
-docker run -d \
-  --name transportation-app \
-  -p 8080:8080 \
-  transportation-api:latest
-
-```
-
----
-
-##  API Documentation & Swagger UI
-
-Once the application is running, you can explore and test all available endpoints interactively via Swagger UI:
-
-* **Swagger UI:** [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html)
-* **OpenAPI JSON Docs:** [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs)
-
-### Core Endpoints
-
-* POST `/api/v1/booking` — Book a travel seat.
-* GET `/api/v1/booking/fill` — Manually trigger transport data seeding.
-
-```
-
-```
+This is a demo/MVP, not a complete commercial ticketing platform. Before handling real customers or payments, it still needs operator/staff authentication and authorization, audited trip/fleet management, verified schedules and fares, cancellation/refund rules, M-Pesa/payment-provider integration, customer notifications, deployment monitoring/backups, and a privacy/data-retention policy. The public booking lookup currently relies on possession of an unguessable booking reference.

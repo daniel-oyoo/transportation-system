@@ -1,20 +1,16 @@
 # ==========================================
 # Stage 1: Build the Application
 # ==========================================
-FROM eclipse-temurin:21-jdk-jammy AS builder
+FROM maven:3.9.9-eclipse-temurin-21 AS builder
 
 WORKDIR /build
 
-# Copy Maven wrapper and pom.xml first to cache dependencies efficiently
-COPY .mvn/ .mvn
-COPY mvnw pom.xml ./
+COPY pom.xml ./
 
-# Download dependencies (cached if pom.xml doesn't change)
-RUN ./mvnw dependency:go-offline -B
+RUN mvn -B dependency:go-offline
 
-# Copy source code and build the fat JAR
 COPY src ./src
-RUN ./mvnw clean package -DskipTests
+RUN mvn -B clean package -DskipTests
 
 # ==========================================
 # Stage 2: Runtime Image

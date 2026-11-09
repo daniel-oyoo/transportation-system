@@ -1,6 +1,6 @@
 package com.daniel.repository;
 
-import java.util.Optional;
+import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -11,5 +11,7 @@ import com.daniel.entity.SeatEntity;
 @Repository
 public interface SeatRepository extends JpaRepository<SeatEntity,Long>{
 
-    Optional<SeatEntity> findByCarId(String carId);
+    List<SeatEntity> findAllByCarIdOrderById(String carId);
+
+    long countByCarId(String carId);
 }
